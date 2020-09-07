@@ -52,7 +52,6 @@ int status = WL_IDLE_STATUS; //STATUS TEMPORÁRIO ATRIBUÍDO QUANDO O WIFI É IN
 //(RESULTANDO EM WL_CONNECTED)
 
 int solo =  -1;
-
 int humidity = -1;
 int temperature = -1;
 
@@ -60,7 +59,6 @@ void setup() {
 
   Serial.begin(9600); //INICIALIZA A SERIAL
   delay(2000); //INTERVALO DE 2 SEGUNDO ANTES DE INICIAR
-
   start();
   while (!Serial);
   Serial.println(F("Initializing SD card..."));
@@ -92,17 +90,12 @@ void setup() {
 
   myFile.close();
   configParametros();
-
-
   pinMode(pin_valvula, OUTPUT);
   pinMode(pin_luz, OUTPUT);
   digitalWrite(pin_valvula, HIGH);
   digitalWrite(pin_luz, HIGH);
   pinMode(sensor_solo, INPUT);
 
-
-
-  // put your setup code here, to run once:
   Serial1.begin(9600); //INICIALIZA A SERIAL PARA O ESP8266
   WiFi.init(&Serial1); //INICIALIZA A COMUNICAÇÃO SERIAL COM O ESP8266
   WiFi.config(IPAddress(192, 168, 15, 110)); //COLOQUE UMA FAIXA DE IP DISPONÍVEL DO SEU ROTEADOR
@@ -121,9 +114,8 @@ void loop() {
   configWifi();
   // Connect to HTTP server
   WiFiEspClient client;
-
   char url[80] = "";
-  if ((millis() - millisTarefa) > 3000) {
+  if ((millis() - millisTarefa) > 300000) {
     millisTarefa = millis();
     solo =  sensorSolo();
     DHT.read11(pinoDHT11);
@@ -131,16 +123,14 @@ void loop() {
     humidity = DHT.humidity;
     temperature = DHT.temperature;
     delay(100);
- 
   }
-  //sprintf(url, "%s?dht=%d/%d&solo=%i&luz=%i HTTP/1.1", getReq, humidity, temperature, solo, luzStatus);
-    sprintf(url, "%s",getReq);
+  //sprintf(url, "%s?dht=%i/%i&solo=%i&luz=%i HTTP/1.1", getReq, humidity, temperature, solo, luzStatus);
+  sprintf(url, "%s", getReq);
   client.setTimeout(10000);
   if (!client.connect("my-json-server.typicode.com", 80)) {
     Serial.println(F("Connection failed"));
     return;
   }
-
   Serial.println(F("Connected!"));
   // Send HTTP request
   client.println(url);
@@ -170,17 +160,14 @@ void loop() {
   // Use arduinojson.org/assistant to compute the capacity.
   const size_t capacity = JSON_OBJECT_SIZE(1) + 20;
   DynamicJsonBuffer jsonBuffer(capacity);
-
   // Parse JSON object
   JsonObject& root = jsonBuffer.parseObject(client);
   if (!root.success()) {
     Serial.println(F("Parsing failed!"));
     return;
   }
-
   client.stop();
   char* response = root["comando"].as<char*>();
-
   if (strcmp(response, "R") == 0 ) {
     acionaValvula();
   } else {
@@ -206,8 +193,7 @@ void configWifi() {
     if (cont > 3) {
       errorInicializacao(3, 200, 500);
     }
-
-    status = WiFi.begin(ssid.c_str(),password.c_str());
+    status = WiFi.begin(ssid.c_str(), password.c_str());
     cont++;
   }
 }
