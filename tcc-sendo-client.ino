@@ -16,9 +16,9 @@
 // Pino ligado ao CS do modulo
 #define chipSelect 4
 //valvula
-#define pin_valvula  8
+#define pin_valvula  10
 //luz
-#define pin_luz  9
+#define pin_luz 9
 // sensor solo
 #define sensor_solo  A4
 
@@ -29,12 +29,12 @@ dht DHT; //VARIÁVEL DO TIPO DHT
 //Variaveis para cartao SD
 String parameter;
 byte line;
-String configs[2];
+String configs[3];
 
 //parametros
 
 String ssid = "", password = "";
-
+int id=0;
 
 int8_t luzStatus = 0;
 
@@ -56,8 +56,14 @@ int humidity = -1;
 int temperature = -1;
 
 void setup() {
-
+  pinMode(pin_valvula, OUTPUT);
+  pinMode(pin_luz, OUTPUT);
+  digitalWrite(pin_valvula, HIGH);
+  digitalWrite(pin_luz, HIGH);
   Serial.begin(9600); //INICIALIZA A SERIAL
+
+  pinMode(sensor_solo, INPUT);
+
   delay(2000); //INTERVALO DE 2 SEGUNDO ANTES DE INICIAR
   start();
   while (!Serial);
@@ -90,11 +96,6 @@ void setup() {
 
   myFile.close();
   configParametros();
-  pinMode(pin_valvula, OUTPUT);
-  pinMode(pin_luz, OUTPUT);
-  digitalWrite(pin_valvula, HIGH);
-  digitalWrite(pin_luz, HIGH);
-  pinMode(sensor_solo, INPUT);
 
   Serial1.begin(9600); //INICIALIZA A SERIAL PARA O ESP8266
   WiFi.init(&Serial1); //INICIALIZA A COMUNICAÇÃO SERIAL COM O ESP8266
@@ -114,7 +115,7 @@ void loop() {
   configWifi();
   // Connect to HTTP server
   WiFiEspClient client;
-  char url[80] = "";
+  char url[100] = "";
   if ((millis() - millisTarefa) > 300000) {
     millisTarefa = millis();
     solo =  sensorSolo();
@@ -124,7 +125,7 @@ void loop() {
     temperature = DHT.temperature;
     delay(100);
   }
-  //sprintf(url, "%s?dht=%i/%i&solo=%i&luz=%i HTTP/1.1", getReq, humidity, temperature, solo, luzStatus);
+  //sprintf(url, "%s?dht=%i/%i&solo=%i&luz=%i&id=%i HTTP/1.1", getReq, humidity, temperature, solo, luzStatus,id);
   sprintf(url, "%s", getReq);
   client.setTimeout(10000);
   if (!client.connect("my-json-server.typicode.com", 80)) {
@@ -167,16 +168,21 @@ void loop() {
     return;
   }
   client.stop();
-  char* response = root["comando"].as<char*>();
-  if (strcmp(response, "R") == 0 ) {
+  char* valvula = root["valvula"].as<char*>();
+   char* luz = root["luz"].as<char*>();
+
+   
+  if (strcmp(valvula, "1") == 0 ) {
     acionaValvula();
-  } else {
-    if (strcmp(response, "L") == 0) {
+  } 
+  
+    if (strcmp(luz, "1") == 0) {
+
       ligaLuz();
       luzStatus = 1;
     } else {
-      if (strcmp(response, "D") == 0) {
-      }
+      if (strcmp(luz, "0") == 0) {
+
       desligaLuz();
       luzStatus = 0;
     }
@@ -219,13 +225,14 @@ void configParametros()
 {
   ssid = configs[0];
   password = configs[1];
+  id=configs[2].toInt();
 }
 
 void ligaLuz() {
   digitalWrite(pin_luz, LOW);
 }
 void desligaLuz() {
-  digitalWrite(pin_luz, HIGH);
+  digitalWrite(pin_luz, LOW);
 }
 
 void acionaValvula() {
